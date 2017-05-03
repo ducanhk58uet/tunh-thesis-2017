@@ -1,13 +1,14 @@
 package org.nebulae.unit.step01;
 
 import java.io.File;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 import org.formular.util.file.TomcatFileManager;
 
-public class statistic_user_rating
+public class statistic_user_rating extends BaseModule
 {
 	static File fk = new File("C:/Users/Andy/Desktop/librec-2.0.0/data/filmtrust/rating/ratings_2.txt");
 	static TomcatFileManager fm = new TomcatFileManager();
@@ -15,30 +16,41 @@ public class statistic_user_rating
 	public static void main(String[] args) 
 	throws Exception
 	{
-		List<Double[]> items = readLineFromFile();
+		List<Double[]> items = readLineFromFile(fk);
 		
 		Map<Double, Double> es = List2.hist(items, x -> x[0]);
 		
 		for(Double dk: es.keySet())
-		if(es.get(dk) < 5 && dk == 219)
+		if(es.get(dk) < 5)
 		{
 			Double[] d = max(dk, items);
 			
 			//ket qua nhung nguoi trung danh gia voi user id 219
 			List<Double[]> res = selectSimilarRate(items, d, 0.5);
-			for(int i = 0; i < res.size() / 4; i++)
-			{
-				selectByUserId(items, res.get(i));
-				
-			}
 			
-			break;
+			System.out.println("**** Query to: " + dk );
+			
+			File f = fm.getDesktopFile("/data-deploy/output3/select_users_similar_"+ dk + ".txt");
+			PrintWriter out = new PrintWriter(f);
+			for(int i = 0; i < res.size(); i++)
+			{
+				selectByUserId(items, res.get(i), out);
+			}
+			out.close();
+			
+			//break;
 		}
 	}
 
-	private static void selectByUserId(List<Double[]> items, Double[] dk) 
+	private static void selectByUserId(List<Double[]> items, Double[] d, PrintWriter out) 
+	throws Exception
 	{
 		
+		for(Double[] dk: items) 
+		{
+			if(String.valueOf(d[0]).equals(String.valueOf(dk[0])))
+				out.println(dk[0] + " " + dk[1] + " " + dk[2]);
+		}
 	}
 
 	private static List<Double[]> selectSimilarRate(List<Double[]> items, Double[] d, double sigma)
@@ -94,17 +106,4 @@ public class statistic_user_rating
 		return null;
 	}
 
-	private static List<Double[]> readLineFromFile() 
-	throws Exception
-	{
-		List<Double[]> res = new ArrayList<Double[]>();
-		for(String sk: fm.readLinesIntoList(fk))
-		{
-			String[] s = sk.split(" ");
-			res.add(new Double[]{Double.parseDouble(s[0]),
-									Double.parseDouble(s[1]),
-									Double.parseDouble(s[2])});
-		}
-		return res;
-	}
 }
